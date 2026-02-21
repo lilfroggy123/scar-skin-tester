@@ -1,0 +1,119 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SCAR Skin Tester</title>
+
+<style>
+body {
+    margin: 0;
+    overflow: hidden;
+    background: #111;
+    font-family: Arial, sans-serif;
+}
+
+#upload {
+    position: absolute;
+    top: 20px;
+    left: 20px;
+    z-index: 10;
+    padding: 8px;
+    background: white;
+    border-radius: 6px;
+}
+</style>
+</head>
+
+<body>
+
+<input type="file" id="upload" accept="image/*">
+
+<script type="module">
+import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.160/build/three.module.js';
+import { GLTFLoader } from 'https://cdn.jsdelivr.net/npm/three@0.160/examples/jsm/loaders/GLTFLoader.js';
+import { OrbitControls } from 'https://cdn.jsdelivr.net/npm/three@0.160/examples/jsm/controls/OrbitControls.js';
+
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0x111111);
+
+const camera = new THREE.PerspectiveCamera(
+    60,
+    window.innerWidth / window.innerHeight,
+    0.1,
+    1000
+);
+
+const renderer = new THREE.WebGLRenderer({ antialias: true });
+renderer.setSize(window.innerWidth, window.innerHeight);
+renderer.setPixelRatio(window.devicePixelRatio);
+document.body.appendChild(renderer.domElement);
+
+const controls = new OrbitControls(camera, renderer.domElement);
+camera.position.set(2, 2, 5);
+controls.update();
+
+// Lighting
+const hemiLight = new THREE.HemisphereLight(0xffffff, 0x444444, 2);
+scene.add(hemiLight);
+
+const dirLight = new THREE.DirectionalLight(0xffffff, 2);
+dirLight.position.set(5, 10, 7.5);
+scene.add(dirLight);
+
+let scarModel;
+
+const loader = new GLTFLoader();
+loader.load(
+    'scar.glb',
+    function (gltf) {
+        scarModel = gltf.scene;
+        scene.add(scarModel);
+    },
+    undefined,
+    function (error) {
+        console.error('Error loading GLB:', error);
+    }
+);
+
+// Texture Upload
+document.getElementById('upload').addEventListener('change', function (e) {
+    if (!scarModel) return;
+
+    const file = e.target.files[0];
+    const reader = new FileReader();
+
+    reader.onload = function (event) {
+        const texture = new THREE.TextureLoader().load(event.target.result);
+        texture.flipY = false;
+
+        scarModel.traverse((child) => {
+            if (child.isMesh) {
+                child.material.map = texture;
+                child.material.needsUpdate = true;
+            }
+        });
+    };
+
+    reader.readAsDataURL(file);
+});
+
+// Resize Handling
+window.addEventListener('resize', () => {
+    camera.aspect = window.innerWidth / window.innerHeight;
+    camera.updateProjectionMatrix();
+    renderer.setSize(window.innerWidth, window.innerHeight);
+});
+
+function animate() {
+    requestAnimationFrame(animate);
+    controls.update();
+    renderer.render(scene, camera);
+}
+
+animate();
+</script>
+
+</body>
+</html>
