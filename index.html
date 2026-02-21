@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>SCAR Skin Tester</title>
+  <style>
+    body { margin: 0; overflow: hidden; }
+    #upload { position: absolute; top: 20px; left: 20px; z-index: 10; }
+  </style>
+</head>
+<body>
+
+<input type="file" id="upload" accept="image/*" />
+
+<script type="module">
+import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.160/build/three.module.js';
+import { GLTFLoader } from 'https://cdn.jsdelivr.net/npm/three@0.160/examples/jsm/loaders/GLTFLoader.js';
+import { OrbitControls } from 'https://cdn.jsdelivr.net/npm/three@0.160/examples/jsm/controls/OrbitControls.js';
+
+const scene = new THREE.Scene();
+const camera = new THREE.PerspectiveCamera(75, window.innerWidth/window.innerHeight, 0.1, 1000);
+const renderer = new THREE.WebGLRenderer({ antialias: true });
+
+renderer.setSize(window.innerWidth, window.innerHeight);
+document.body.appendChild(renderer.domElement);
+
+const controls = new OrbitControls(camera, renderer.domElement);
+camera.position.set(2, 2, 5);
+controls.update();
+
+const light = new THREE.HemisphereLight(0xffffff, 0x444444, 2);
+scene.add(light);
+
+let scarMesh;
+
+const loader = new GLTFLoader();
+loader.load('scar.glb', function(gltf) {
+    scarMesh = gltf.scene;
+    scene.add(scarMesh);
+});
+
+document.getElementById('upload').addEventListener('change', function(e) {
+    const file = e.target.files[0];
+    const reader = new FileReader();
+    reader.onload = function(event) {
+        const texture = new THREE.TextureLoader().load(event.target.result);
+        scarMesh.traverse((child) => {
+            if (child.isMesh) {
+                child.material.map = texture;
+                child.material.needsUpdate = true;
+            }
+        });
+    };
+    reader.readAsDataURL(file);
+});
+
+function animate() {
+    requestAnimationFrame(animate);
+    renderer.render(scene, camera);
+}
+animate();
+</script>
+
+</body>
+</html>
